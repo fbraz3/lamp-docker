@@ -1,10 +1,14 @@
+[![Build Base Images](https://github.com/fbraz3/lamp-docker/actions/workflows/base-images.yml/badge.svg)](https://github.com/fbraz3/lamp-docker/actions/workflows/base-images.yml)
+[![Build Phalcon Images](https://github.com/fbraz3/lamp-docker/actions/workflows/phalcon-images.yml/badge.svg)](https://github.com/fbraz3/lamp-docker/actions/workflows/phalcon-images.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fbraz3/lamp-docker)
+
 # Braz LAMP Docker Image
 
-This repository provides a Docker image for an LAMP stack (`L`inux, `A`pache, `M`ySQL, and `P`HP-FPM).  
+This repository provides Docker images for LAMP stack (`L`inux, `A`pache, `M`ariaDB, and `P`HP-FPM).
 
-It is designed to simplify the deployment of PHP applications with a robust and modern environment. 
+It is designed to simplify the deployment of PHP applications with a robust and modern environment, offering both **Development** and **Production** versions to meet different deployment needs.
 
-The image is built on top of other modular images from the `fbraz3` ecosystem, ensuring flexibility, maintainability, and ease of use.
+The images are built on top of other modular images from the `fbraz3` ecosystem, ensuring flexibility, maintainability, and ease of use.
 
 We also provide an AI generated [DeepWiki Page](https://deepwiki.com/fbraz3/lamp-docker) with more technical information.
 
@@ -13,10 +17,15 @@ We also provide an AI generated [DeepWiki Page](https://deepwiki.com/fbraz3/lamp
 ## Table of Contents
 
 - [Braz LAMP Docker Image](#braz-lamp-docker-image)
-  - [Build Status](#build-status)
+  - [Image Versions](#image-versions)
   - [Tags](#tags)
   - [Flavors](#flavors)
   - [How to Use](#how-to-use)
+    - [Development Version](#development-version)
+    - [Production Version](#production-version)
+  - [Custom SQL Scripts](#custom-sql-scripts)
+  - [Security Considerations](#security-considerations)
+  - [Environment Variables](#environment-variables)
   - [Manage PHP Directives via Environment Variables](#manage-php-directives-via-environment-variables)
   - [Cronjobs](#cronjobs)
   - [Sending Mails](#sending-mails)
@@ -24,18 +33,51 @@ We also provide an AI generated [DeepWiki Page](https://deepwiki.com/fbraz3/lamp
   - [Donation](#donation)
   - [License](#license)
 
-## Build Status
+## Image Versions
 
-[![Build Base Images](https://github.com/fbraz3/lamp-docker/actions/workflows/base-images.yml/badge.svg)](https://github.com/fbraz3/lamp-docker/actions/workflows/base-images.yml) [![Build Phalcon Images](https://github.com/fbraz3/lamp-docker/actions/workflows/phalcon-images.yml/badge.svg)](https://github.com/fbraz3/lamp-docker/actions/workflows/phalcon-images.yml)
+This project provides two distinct versions for different use cases:
+
+### Development Version (`-dev` suffix)
+- **Purpose**: Designed for local development and testing
+- **Features**:
+  - MariaDB with **no root password** (empty password)
+  - phpMyAdmin accessible at `/pma/` endpoint
+  - Relaxed security settings for ease of development
+  - Direct database access without authentication
+
+### Production Version (no suffix)
+- **Purpose**: Optimized for production environments
+- **Features**:
+  - MariaDB with **mandatory root password** configuration
+  - **Enforced password security**: Container will fail to start if using default password
+  - **Custom SQL scripts support**: Execute custom SQL files at startup
+  - **No phpMyAdmin** included for security
+  - Secure database configuration
+  - Root password configurable via environment variables
+  - Anonymous users and test databases removed
+  - Enhanced security settings
 
 ## Tags
 
 The image follows a consistent tagging scheme:
 
-- `PHP Version Tags`: Each tag corresponds to a specific PHP version (e.g., `8.2`, `8.3`).
-- `Flavors`: Tags may include additional flavor identifiers (e.g., `-phalcon`).
-- `Multi-Arch Support`: Images are available for both `amd64` and `arm64` architectures.
-- `Latest Tag`: The `latest` tag always points to the most recent stable PHP version.
+### Base Images (Vanilla LAMP Stack)
+- **Production**: `fbraz3/lamp:{php_version}` (e.g., `8.2`, `8.3`, `8.4`)
+- **Development**: `fbraz3/lamp:{php_version}-dev` (e.g., `8.2-dev`, `8.3-dev`)
+
+### Phalcon Images (With Phalcon Framework)
+- **Production**: `fbraz3/lamp:{php_version}-phalcon` (e.g., `8.2-phalcon`, `8.3-phalcon`)
+- **Development**: `fbraz3/lamp:{php_version}-phalcon-dev` (e.g., `8.2-phalcon-dev`)
+
+### Latest Tags
+- `fbraz3/lamp:latest` - Latest production version
+- `fbraz3/lamp:latest-dev` - Latest development version  
+- `fbraz3/lamp:latest-phalcon` - Latest Phalcon production version
+- `fbraz3/lamp:latest-phalcon-dev` - Latest Phalcon development version
+
+### Architecture Support
+- All images support both `amd64` and `arm64` architectures
+- LAMP variants are also available as `fbraz3/lamp:{tag}`
 
 ## Flavors
 
@@ -46,17 +88,45 @@ This image supports multiple flavors to cater to different use cases:
 
 ## How to Use
 
-To use this image, create a `docker-compose.yml` file in your application root directory:
+### Development Version
+
+Perfect for local development with easy database access and debugging tools.
 
 ```yaml
+# docker-compose.yml
 services:
-web:
-image: fbraz3/lamp-docker
-volumes:
-- ./:/app/public/
-ports:
-- "127.0.0.1:80:80"
-- "127.0.0.1:3306:3306"
+  web:
+    image: fbraz3/lamp:8.4-dev  # or fbraz3/lamp:8.4-phalcon-dev
+    volumes:
+      - ./:/app/public/
+    ports:
+      - "127.0.0.1:80:80"
+```
+
+The development version includes:
+- **phpMyAdmin** accessible at `http://localhost/pma/`
+- **MariaDB** with no root password (empty password)
+- Direct database access for development
+
+### Production Version
+
+Optimized for production environments with enhanced security.
+
+```yaml
+# docker-compose.yml
+services:
+  web:
+    image: fbraz3/lamp:8.4  # or fbraz3/lamp:8.4-phalcon
+    volumes:
+      - ./:/app/public/
+      - ./sql-scripts:/sql-scripts  # Optional: Custom SQL scripts
+    ports:
+      - "127.0.0.1:80:80"
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_secure_password_here
+      - MYSQL_DATABASE=your_app_db
+      - MYSQL_USER=app_user
+      - MYSQL_PASSWORD=app_user_password
 ```
 
 Run the following command to start the container:
@@ -65,7 +135,45 @@ Run the following command to start the container:
 docker-compose up -d
 ```
 
-Your application will be accessible at `http://localhost/`, and phpMyAdmin will be available at `http://localhost/pma/`.
+Your application will be accessible at `http://localhost/`.
+
+## Custom SQL Scripts
+
+The production version of this image supports the execution of custom SQL scripts at startup. 
+
+To use this feature, place your SQL files in a directory (e.g., `./sql-scripts`) and mount it as a volume to the container:
+
+```yaml
+services:
+  web:
+    image: fbraz3/lamp:8.4  # Production version
+    volumes:
+      - ./:/app/public/
+      - ./sql-scripts:/sql-scripts  # Custom SQL scripts directory
+    ports:
+      - "127.0.0.1:80:80"
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_secure_password_here
+```
+
+SQL scripts in the mounted directory will be executed in alphabetical order during container startup.
+
+## Security Considerations
+
+- **Development Version**: This version has relaxed security settings for ease of development. It is not recommended for production use.
+- **Production Version**: This version enforces strict security measures. Ensure that you configure the root password and remove any default or test databases.
+
+## Environment Variables
+
+You can configure various aspects of the container using environment variables. 
+
+Commonly used variables include:
+
+- `MYSQL_ROOT_PASSWORD`: Set the root password for MariaDB.
+- `MYSQL_DATABASE`: Create a default database.
+- `MYSQL_USER` and `MYSQL_PASSWORD`: Create a new user with access to the default database.
+
+Refer to the [official MariaDB Docker image documentation](https://hub.docker.com/_/mariadb) for a complete list of environment variables.
 
 ## Manage PHP Directives via Environment Variables
 This image allows you to customize PHP directives using environment variables. 
