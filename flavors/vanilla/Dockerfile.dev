@@ -1,7 +1,7 @@
 ARG PHP_VERSION=8.2
 ARG BUILD_ARCH="amd64"
 ARG BUILD_FLAVOR=""
-FROM fbraz3/php-apache2:$PHP_VERSION$BUILD_FLAVOR
+FROM fbraz3/php-apache2:$PHP_VERSION$BUILD_FLAVOR-phalcon
 USER root
 
 ARG PHP_VERSION
@@ -37,7 +37,7 @@ COPY ../../modules/lemp-docker/assets/mariadb/50-server.cnf /etc/mysql/mariadb.c
 COPY ../../assets/apache2/pma.conf /etc/apache2/custom-conf/01-pma.conf
 COPY ../../modules/lemp-docker/assets/monit/mariadb /etc/monit/conf-enabled/
 
-# try to install buils.sql in execution time
+# try to install build.sql in execution time
 COPY ../../modules/lemp-docker/assets/scripts/build.sql /
 
 # Create app user and database
@@ -46,7 +46,9 @@ RUN /etc/init.d/mariadb start || exit 1; \
     mysql < /build.sql; \
     /etc/init.d/mariadb stop
 
-RUN chown -R www-data. /run/mysqld; \
+RUN mkdir /sql-scripts; \
+    chown -R www-data. /sql-scripts; \
+    chown -R www-data. /run/mysqld; \
     chown -R www-data. /usr/lib/mysql; \
     chown -R www-data. /var/log/mysql; \
     chown -R www-data. /var/lib/mysql; \
