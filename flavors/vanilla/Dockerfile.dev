@@ -13,9 +13,10 @@ ARG PHPMYADMIN_OLD=4.8.5
 ARG PHPMYADMIN=5.2.2
 
 COPY ../../modules/lemp-docker/assets/scripts/docker-entrypoint.sh /entrypoints/3-mariadb-entrypoint.sh
-RUN chmod +x /entrypoints/3-mariadb-entrypoint.sh
+COPY ../../assets/scripts/healthcheck.sh /healthcheck.sh
+RUN chmod +x /entrypoints/3-mariadb-entrypoint.sh /healthcheck.sh
 
-RUN apt-get update && apt-get upgrade -y
+RUN apt-get update --allow-releaseinfo-change && apt-get upgrade -y
 
 #oh maria!
 RUN for i in {1..10}; do \
@@ -58,4 +59,5 @@ RUN mkdir /sql-scripts; \
     chown -R www-data. /etc/mysql/;
 
 USER www-data
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD /healthcheck.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
