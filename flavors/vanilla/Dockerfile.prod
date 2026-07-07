@@ -10,8 +10,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV ENTRYPOINT_COMMAND="/usr/bin/tail -f /var/log/apache2/access.log"
 
 COPY ../../modules/lemp-docker/assets/scripts/docker-entrypoint-prod.sh /entrypoints/3-mariadb-entrypoint.sh
-RUN chmod +x /entrypoints/3-mariadb-entrypoint.sh
+COPY ../../assets/scripts/healthcheck.sh /healthcheck.sh
+RUN chmod +x /entrypoints/3-mariadb-entrypoint.sh /healthcheck.sh
 
+RUN apt-get update --allow-releaseinfo-change && apt-get upgrade -y
 # Install MariaDB
 RUN for i in {1..10}; do \
       apt-get install -yq mariadb-server mariadb-client && break || sleep 10; \
@@ -39,4 +41,5 @@ RUN mkdir /sql-scripts; \
     chown -R www-data. /etc/mysql/;
 
 USER www-data
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD /healthcheck.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
