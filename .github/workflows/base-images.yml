@@ -11,7 +11,7 @@ on:
     - cron: '0 6 * * 3'
 
 env:
-  CACHE_VERSION: cache-v2
+  CACHE_VERSION: cache-v3
 
 jobs:
   build_images:
