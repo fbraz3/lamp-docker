@@ -86,6 +86,13 @@ jobs:
           docker exec -i test-dev ps faux |grep -q "mariadbd"  || exit 1
           docker exec -i test-dev mysqladmin ping || exit 1
           telnet 127.0.0.1 3306 |grep -q Connected
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1/ | grep -q "Hello World"; then
+              echo "Service is healthy!"
+              break
+            fi
+            sleep 2
+          done
           curl http://127.0.0.1/ | grep -q "Hello World" || exit 1
           curl http://127.0.0.1/pma/ |grep "<title>" |grep -iq phpMyAdmin || exit 1
           docker exec -i test-dev monit summary || exit 1
@@ -121,6 +128,13 @@ jobs:
           docker exec -i test-prod ps faux |grep -q "mariadbd"  || exit 1
           docker exec -i test-prod mysqladmin -u root -ptestpassword123 ping || exit 1
           telnet 127.0.0.1 3307 |grep -q Connected
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8080/ | grep -q "Hello World"; then
+              echo "Service is healthy!"
+              break
+            fi
+            sleep 2
+          done
           curl http://127.0.0.1:8080/ | grep -q "Hello World" || exit 1
           # Ensure phpMyAdmin is NOT accessible in production
           ! curl -f http://127.0.0.1:8080/pma/ || exit 1
@@ -157,6 +171,14 @@ jobs:
           docker exec -i test-dev-arm ps faux |grep -q "mariadbd"  || exit 1
           docker exec -i test-dev-arm mysqladmin ping || exit 1
           telnet 127.0.0.1 3306 |grep -q Connected
+          docker exec -i test-dev-arm /etc/init.d/apache2 start 2>/dev/null || true
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1/ | grep -q "Hello World"; then
+              echo "Service is healthy!"
+              break
+            fi
+            sleep 2
+          done
           curl http://127.0.0.1/ | grep -q "Hello World" || exit 1
           curl http://127.0.0.1/pma/ |grep "<title>" |grep -iq phpMyAdmin || exit 1
           docker exec -i test-dev-arm monit summary || exit 1
@@ -192,6 +214,14 @@ jobs:
           docker exec -i test-prod-arm ps faux |grep -q "mariadbd"  || exit 1
           docker exec -i test-prod-arm mysqladmin -u root -ptestpassword123 ping || exit 1
           telnet 127.0.0.1 3307 |grep -q Connected
+          docker exec -i test-prod-arm /etc/init.d/apache2 start 2>/dev/null || true
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8080/ | grep -q "Hello World"; then
+              echo "Service is healthy!"
+              break
+            fi
+            sleep 2
+          done
           curl http://127.0.0.1:8080/ | grep -q "Hello World" || exit 1
           # Ensure phpMyAdmin is NOT accessible in production
           ! curl -f http://127.0.0.1:8080/pma/ || exit 1
